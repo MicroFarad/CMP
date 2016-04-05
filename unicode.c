@@ -9,7 +9,7 @@ All Rights Reserved
 
 int UNICODE_CharComparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 {
-	if(UNICODE_POLYCHAR(key1) <  UNICODE_POLYCHAR(key1)) return -1;
-	else if(UNICODE_POLYCHAR(key1) >  UNICODE_POLYCHAR(key1)) return 1;
+	if(UNICODE_POLYCHAR(key1) <  UNICODE_POLYCHAR(key2)) return -1;
+	else if(UNICODE_POLYCHAR(key1) >  UNICODE_POLYCHAR(key2)) return 1;
 	else return 0;
 }

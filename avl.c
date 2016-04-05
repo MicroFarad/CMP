@@ -6,7 +6,6 @@ All Rights Reserved
 */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include "avl.h"
 
 AVL_Tree *AVL_Initialize(AVL_Tree *tree, AVL_Destroyer kfree, AVL_Destroyer vfree, AVL_Comparator comparator)
@@ -218,7 +217,6 @@ void AVL_Insert(AVL_Tree *tree, POLY_Polymorphic key)
 
 void AVL_Delete(AVL_Tree *tree, POLY_Polymorphic key)
 {
-	printf("del\n");
 	AVL_Node *container = AVL_GetNode(tree, key);
 	AVL_Node *delete;
 	AVL_Node *parent;
@@ -301,8 +299,7 @@ void AVL_Delete(AVL_Tree *tree, POLY_Polymorphic key)
 
 int AVL_Contains(AVL_Tree *tree, POLY_Polymorphic key)
 {
-	if(AVL_GetNode(tree, key)) return 1;
-	else return 0;
+	return AVL_GetNode(tree, key) ? 1 : 0;
 }
 
 // gets the size of a tree

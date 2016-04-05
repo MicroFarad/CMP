@@ -75,7 +75,7 @@ int NFA_Comparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 // creates a uniquely numbered NFA node
 NFA_Node *NFA_CreateState(unsigned long *unique, NFA_Node **last)
 {
-	printf("NFA_CreateState 1\n");
+	//printf("NFA_CreateState 1\n");
 	NFA_Node *node = malloc(sizeof(NFA_Node));
 	AVL_Initialize(&node->transitions, NULL, AVL_Destroy, UNICODE_CharComparator);
 	AVL_Initialize(&node->epsilons, NULL, NULL, NFA_Comparator);
@@ -100,10 +100,10 @@ int DFA_Comparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 // creates a uniquely numbered DFA node
 DFA_Node *DFA_CreateState(unsigned long *unique, DFA_Node **last)
 {
-	printf("DFA_CreateState 1\n");
+	//printf("DFA_CreateState 1\n");
 	DFA_Node *node = malloc(sizeof(DFA_Node));
 	AVL_Initialize(&node->transitions, NULL, AVL_Destroy, UNICODE_CharComparator);
-	node->accepts = 0;
+	//node->accepts = 0;
 	node->identifier = (*unique)++;
 	node->next = NULL;
 	if(*last) (*last)->next = node;
@@ -142,27 +142,44 @@ int DFA_BinComparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 	return 0;
 }
 
+// find the largest accepts value of a set of NFA states
+unsigned long GetAccepts(AVL_Tree *states)
+{
+	AVL_Iterator iter;
+	AVL_InitializeIterator(states, &iter);
+	unsigned long accepts = 0;
+	while(AVL_Next(&iter))
+	{
+		unsigned long t = POLYNFA(AVL_Key(&iter))->accepts;
+		if(t>accepts) accepts = t;
+	}
+	printf("ACCPETS: %d\n", accepts);
+	return accepts;
+}
+
 // finds the mapping from a set of NFA states to a DFA state, or creates the mapping if it doesn't exist and queues unexplored states
 DFA_Node *MapStates(AVL_Tree *map, AVL_Tree *states, unsigned long *unique, DFA_Node **last, LIST_List *unexplored)
 {
-	printf("MapStates 1\n");
+	/*printf("MapStates 1\n");
 	AVL_Iterator iter;
 	AVL_InitializeIterator(states, &iter);
 	while(AVL_Next(&iter))
 	{
-		printf("MapStates 1.2: %p\n", POLYNFA(AVL_Key(&iter)));
-	}
+		printf("MapStates 1.2: %d\n", POLYNFA(AVL_Key(&iter))->identifier);
+	}*/
 	if(AVL_Contains(map, POLY_REF(states)))
 	{
-		printf("MapStates 1.3\n");
+		//printf("MapStates 1.3\n");
 		return POLYDFA(AVL_Get(map, POLY_REF(states)));
 	}
 	else
 	{
-		printf("MapStates 1.4\n");
+		//printf("MapStates 1.4\n");
 		DFA_Node *node;
 		AVL_Set(map, POLY_REF(states), POLY_REF(node = DFA_CreateState(unique, last)));
 		LIST_InsertHead(unexplored, POLY_REF(states));
+		node->accepts = GetAccepts(states);
+		printf("NODE %d ACCEPTS %d\n", node->identifier, node->accepts);
 		return node;
 	}
 }
@@ -217,7 +234,7 @@ AVL_Tree *EpsilonClosure(AVL_Tree *states)
 		//printf("EpsilonClosure 3.6\n");
 		frontier = next;
 	}
-	printf("EpsilonClosure 4: %d\n", AVL_Size(result));
+	//printf("EpsilonClosure 4: %d\n", AVL_Size(result));
 	return result;
 }
 
@@ -229,59 +246,46 @@ AVL_Tree *TransitionSets(AVL_Tree *states)
 	AVL_Iterator outer;
 	// WORK IN PROGRESS WITH EPSILONG CLOSURE HERE
 	AVL_InitializeIterator(EpsilonClosure(states), &outer);
-	printf("TransitionSets 1\n");
+	//printf("TransitionSets 1\n");
 	while(AVL_Next(&outer))
 	{
-		printf("TransitionSets 1.1\n");
+		//printf("TransitionSets 1.1\n");
 		AVL_Iterator inner;
 		AVL_InitializeIterator(&POLYNFA(AVL_Key(&outer))->transitions, &inner);
-		printf("TransitionSets 1.2: %d\n", AVL_Size(&POLYNFA(AVL_Key(&outer))->transitions));
+		//printf("TransitionSets 1.2: %d\n", AVL_Size(&POLYNFA(AVL_Key(&outer))->transitions));
 		while(AVL_Next(&inner))
 		{
-			if(!AVL_Size(AVL_POLYTREE(AVL_Value(&inner)))) printf("VERY BAD THING HAPPEN\n");
-			printf("TransitionSets 1.2.1\n");
+			//if(!AVL_Size(AVL_POLYTREE(AVL_Value(&inner)))) printf("VERY BAD THING HAPPEN\n");
+			//printf("TransitionSets 1.2.1 %c %d\n", UNICODE_POLYCHAR(AVL_Key(&inner)), AVL_Contains(&intermediate, AVL_Key(&inner)));
 			AVL_Tree *set;
 			if(AVL_Contains(&intermediate, AVL_Key(&inner)))
 				set = AVL_POLYTREE(AVL_Get(&intermediate, AVL_Key(&inner)));
 			else
 				AVL_Set(&intermediate, AVL_Key(&inner), POLY_REF(set = AVL_Initialize(malloc(sizeof(AVL_Tree)), NULL, NULL, NFA_Comparator)));
-			printf("TransitionSets 1.2.2\n");
+			//printf("TransitionSets 1.2.2\n");
 			AVL_Iterator sub;
 			AVL_InitializeIterator(AVL_POLYTREE(AVL_Value(&inner)), &sub);
 			while(AVL_Next(&sub)) AVL_Insert(set, AVL_Key(&sub));
-			printf("TransitionSets 1.2.3\n");
+			//printf("TransitionSets 1.2.3\n");
 		}
 	}
-	printf("TransitionSets 2\n");
-	AVL_Tree *result = AVL_Initialize(malloc(sizeof(AVL_Tree)), NULL, NULL, NFA_Comparator);
-	printf("TransitionSets 2.1\n");
+	//printf("TransitionSets 2\n");
+	AVL_Tree *result = AVL_Initialize(malloc(sizeof(AVL_Tree)), NULL, NULL, UNICODE_CharComparator);
+	//printf("TransitionSets 2.1\n");
 	AVL_InitializeIterator(&intermediate, &outer);
-	printf("TransitionSets 2.2\n");
+	//printf("TransitionSets 2.2 %d\n", AVL_Size(&intermediate));
 	while(AVL_Next(&outer))
 	{
-		AVL_Iterator inner;
-		AVL_InitializeIterator(AVL_POLYTREE(AVL_Value(&outer)), &inner);
+		//AVL_Iterator inner;
+		//AVL_InitializeIterator(AVL_POLYTREE(AVL_Value(&outer)), &inner);
 		AVL_Set(result, AVL_Key(&outer), POLY_REF(EpsilonClosure(AVL_POLYTREE(AVL_Value(&outer)))));
+		//printf("BLUB\n");
 	}
 	// YOU NEED TO FREE SETS IN INTERMEDIATE?
-	printf("TransitionSets 2.3\n");
+	//printf("TransitionSets 2.3\n");
 	AVL_Clear(&intermediate);
-	printf("TransitionSets 3: %d\n", AVL_Size(result));
+	//printf("TransitionSets 3: %d\n", AVL_Size(result));
 	return result;
-}
-
-// find the largest accepts value of a set of NFA states
-unsigned long GetAccepts(AVL_Tree *states)
-{
-	AVL_Iterator iter;
-	AVL_InitializeIterator(states, &iter);
-	unsigned long accepts = 0;
-	while(AVL_Next(&iter))
-	{
-		unsigned long t = POLYNFA(AVL_Key(&iter))->accepts;
-		if(t>accepts) accepts = t;
-	}
-	return accepts;
 }
 
 void NFA_Debug(NFA_Node *start, char *name)
@@ -298,16 +302,19 @@ void NFA_Debug(NFA_Node *start, char *name)
 	current = start;
 	while(current)
 	{
-		AVL_Iterator iter;
-		AVL_InitializeIterator(&current->epsilons, &iter);
-		while(AVL_Next(&iter))
+		AVL_Iterator outer;
+		AVL_InitializeIterator(&current->epsilons, &outer);
+		while(AVL_Next(&outer))
 		{
-			fprintf(fp, "%d -> %d [label = \"_\"]\n", current->identifier, POLYNFA(AVL_Key(&iter))->identifier);
+			fprintf(fp, "%d -> %d [label = \"_\"]\n", current->identifier, POLYNFA(AVL_Key(&outer))->identifier);
 		}
-		AVL_InitializeIterator(&current->transitions, &iter);
-		while(AVL_Next(&iter))
+		AVL_InitializeIterator(&current->transitions, &outer);
+		while(AVL_Next(&outer))
 		{
-			fprintf(fp, "%d -> %d [label = \"%c\"]\n", current->identifier, POLYNFA(AVL_Value(&iter))->identifier, UNICODE_POLYCHAR(AVL_Key(&iter)));
+			AVL_Iterator inner;
+			AVL_InitializeIterator(AVL_POLYTREE(AVL_Value(&outer)), &inner);
+			while(AVL_Next(&inner))
+				fprintf(fp, "%d -> %d [label = \"%c\"]\n", current->identifier, POLYNFA(AVL_Key(&inner))->identifier, UNICODE_POLYCHAR(AVL_Key(&outer)));
 		}
 		current = current->next;
 	}
@@ -318,49 +325,47 @@ void NFA_Debug(NFA_Node *start, char *name)
 // converts an NFA to a DFA
 DFA_Node* Convert(NFA_Node *start, unsigned long *unique, DFA_Node **last)
 {
-	printf("Convert 1\n");
+	//printf("Convert 1\n");
 	AVL_Tree *initial = malloc(sizeof(AVL_Tree));
 	AVL_Initialize(initial, NULL, NULL, NFA_Comparator);
-	printf("Convert 1.1\n");
+	//printf("Convert 1.1\n");
 	AVL_Insert(initial, POLY_REF(start));
-	printf("Convert 1.2\n");
+	//printf("Convert 1.2\n");
 	AVL_Tree *closure = EpsilonClosure(initial); // EPSILON CLOSURE BEHAVIOR CHANGED TO NOT FREE, ACTION NEEDED?
-	printf("Convert 1.3\n");
+	//printf("Convert 1.3\n");
 	//AVL_Clear(initial); LOOK AT THIS LINE
-	printf("Convert 1.4\n");
+	//printf("Convert 1.4\n");
 	LIST_List unexplored;
 	LIST_Initialize(&unexplored);
-	printf("Convert 1.5\n");
+	//printf("Convert 1.5\n");
 	AVL_Tree map;
 	AVL_Initialize(&map, AVL_Destroy, NULL, AVL_DeepComparator);
-	printf("Convert 1.6\n");
+	//printf("Convert 1.6\n");
 	DFA_Node *first = MapStates(&map, closure, unique, last, &unexplored);
-	printf("Convert 2\n");
+	//printf("Convert 2\n");
 	while(LIST_Size(&unexplored))
 	{
-		printf("Convert 2.1\n");
+		//printf("Convert 2.1\n");
 		AVL_Tree *states = AVL_POLYTREE(LIST_TakeTail(&unexplored));
 		DFA_Node *node = MapStates(&map, states, unique, last, &unexplored);
-		printf("Convert 2.2\n");
+		//printf("Convert 2.2\n");
 		AVL_Tree *transitions = TransitionSets(states);
 		AVL_Iterator iter;
 		AVL_InitializeIterator(transitions, &iter);
-		printf("Convert 2.3\n");
+		//printf("Convert 2.3\n");
 		while(AVL_Next(&iter))
 		{
-			printf("Convert 2.3.1\n");
+			//printf("Convert 2.3.1\n");
 			AVL_Set(&node->transitions, AVL_Key(&iter), POLY_REF(MapStates(&map, AVL_POLYTREE(AVL_Value(&iter)), unique, last, &unexplored)));
 		}
-		printf("Convert 2.4\n");
-		node->accepts = GetAccepts(states);
-		printf("Convert 2.5\n");
+		//printf("Convert 2.5\n");
 		AVL_Clear(transitions);
-		printf("Convert 2.6\n");
+		//printf("Convert 2.6\n");
 		free(transitions);
 	}
-	printf("Convert 3\n");
+	//printf("Convert 3\n");
 	//AVL_Clear(&map);
-	printf("Convert 4\n");
+	//printf("Convert 4\n");
 	return first;
 }
 
@@ -480,14 +485,14 @@ void PopThenPush(Token t, unsigned long *unique, NFA_Node **last, LIST_List *nfa
 // uses the shunting yard algorithm to create an NFA from a regular expression
 NFA_Node *ConstructNFA(unsigned long *unique, NFA_Node **last, unsigned long accepts, UNICODE_Char *expression)
 {
-	printf("Construct NFA 1\n");
+	//printf("Construct NFA 1\n");
 	LIST_List tokenstack;
 	LIST_Initialize(&tokenstack);
 	LIST_List nfastack;
 	LIST_Initialize(&nfastack);
 	UNICODE_Char c;
 	int cat = 0;
-	printf("Construct NFA 2\n");
+	//printf("Construct NFA 2\n");
 	while(c = *expression++)
 	{
 		int ncat = 0;
@@ -671,48 +676,50 @@ REGEX_Machine *REGEX_CreateMachine(REGEX_Expressions *expressions)
 	unsigned long uniquenfa = 0;
 	NFA_Node *lastnfa = NULL;
 	NFA_Node *start = NFA_CreateState(&uniquenfa, &lastnfa);
-	printf("CreateMachine 1\n");
+	//printf("CreateMachine 1\n");
 	for(unsigned long n = 0; n < expressions->expressions_count; n++)
 	{
-		printf("CreateMachine 1.1\n");
+		//printf("CreateMachine 1.1\n");
 		NFA_Node *nfa = ConstructNFA(&uniquenfa, &lastnfa, expressions->expressions[n].accepts, expressions->expressions[n].expression);
-		printf("CreateMachine 1.2\n");
+		//printf("CreateMachine 1.2\n");
 		AVL_Insert(&start->epsilons, POLY_REF(nfa));
 	}
 	NFA_Debug(start, "testnfa.dot");
-	printf("CreateMachine 2\n");
+	//printf("CreateMachine 2\n");
 	unsigned long uniquedfa = 0;
 	DFA_Node *lastdfa = NULL;
 	DFA_Node *dfa = Convert(start, &uniquedfa, &lastdfa);
-	printf("CreateMachine 2.1\n");
+	//printf("CreateMachine 2.1\n");
 	REGEX_Machine *result = malloc(sizeof(REGEX_Machine));
-	printf("CreateMachine 2.2\n");
-	result->states = malloc(sizeof(REGEX_State)*(result->states_count = uniquedfa));//SimplifyStates(dfa)));
-	printf("CreateMachine 2.3\n");
+	//printf("CreateMachine 2.2\n");
+	result->states = malloc(sizeof(REGEX_State)*(result->states_count = uniquedfa));
+	//SimplifyStates(dfa);
+	//printf("CreateMachine 2.3\n");
 	DFA_Node *current = dfa;
-	printf("CreateMachine 3\n");
+	//printf("CreateMachine 3\n");
 	for(unsigned long n = 0; n < result->states_count; n++)
 	{
-		printf("CreateMachine 3.1\n");
+		//printf("CreateMachine 3.1\n");
 		REGEX_State *state = &result->states[n];
 		state->transitions_count = AVL_Size(&current->transitions);
-		printf("CreateMachine 3.2\n");
+		//printf("CreateMachine 3.2\n");
 		REGEX_Transition *transitions = state->transitions = malloc(sizeof(REGEX_Transition)*state->transitions_count);
 		AVL_Iterator iter;
 		AVL_InitializeIterator(&current->transitions, &iter);
-		printf("CreateMachine 3.3\n");
+		//printf("CreateMachine 3.3\n");
 		for(unsigned short i = 0; i < state->transitions_count; i++)
 		{
-			printf("CreateMachine 3.3.1: %d %d\n", i, state->transitions_count);
+			//printf("CreateMachine 3.3.1: %d %d\n", i, state->transitions_count);
 			AVL_Next(&iter);
-			printf("CreateMachine 3.3.2\n");
+			//printf("CreateMachine 3.3.2\n");
 			transitions[i].on = UNICODE_POLYCHAR(AVL_Key(&iter));
 			transitions[i].to = POLYDFA(AVL_Value(&iter))->identifier;
 		}
-		printf("CreateMachine 3.4\n");
+		//printf("CreateMachine 3.4\n");
+		state->accepts = current->accepts;
 		current = current->next;
 	}
-	printf("CreateMachine 4\n");
+	//printf("CreateMachine 4\n");
 	return result;
 }
 
