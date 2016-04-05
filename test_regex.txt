@@ -1,1 +1,3 @@
 (c|b|h|f)aa*tt
+abc
+(c|b|h|f)a*t

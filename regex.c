@@ -75,7 +75,6 @@ int NFA_Comparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 // creates a uniquely numbered NFA node
 NFA_Node *NFA_CreateState(unsigned long *unique, NFA_Node **last)
 {
-	//printf("NFA_CreateState 1\n");
 	NFA_Node *node = malloc(sizeof(NFA_Node));
 	AVL_Initialize(&node->transitions, NULL, AVL_Destroy, UNICODE_CharComparator);
 	AVL_Initialize(&node->epsilons, NULL, NULL, NFA_Comparator);
@@ -100,10 +99,8 @@ int DFA_Comparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 // creates a uniquely numbered DFA node
 DFA_Node *DFA_CreateState(unsigned long *unique, DFA_Node **last)
 {
-	//printf("DFA_CreateState 1\n");
 	DFA_Node *node = malloc(sizeof(DFA_Node));
 	AVL_Initialize(&node->transitions, NULL, NULL, UNICODE_CharComparator); // DESTROYER?
-	//node->accepts = 0;
 	node->parent = NULL;
 	node->identifier = (*unique)++;
 	node->next = NULL;
@@ -118,10 +115,8 @@ int DFA_BinComparator(POLY_Polymorphic key1, POLY_Polymorphic key2)
 {
 	unsigned long a1 = POLYDFA(key1)->accepts;
 	unsigned long a2 = POLYDFA(key2)->accepts;
-	//printf("Bin compare: %d %d\n", i1, i2);
 	if(a1 < a2) return -1;
 	if(a1 > a2) return 1;
-	//printf("Why are you here?\n");
 	AVL_Tree *t1 = &POLYDFA(key1)->transitions;
 	AVL_Tree *t2 = &POLYDFA(key2)->transitions;
 	unsigned long s1 = AVL_Size(t1);
@@ -169,7 +164,6 @@ DFA_Node *MapStates(AVL_Tree *map, AVL_Tree *states, unsigned long *unique, DFA_
 		return POLYDFA(AVL_Get(map, POLY_REF(states)));
 	else
 	{
-		//printf("MapStates 1.4\n");
 		DFA_Node *node;
 		AVL_Set(map, POLY_REF(states), POLY_REF(node = DFA_CreateState(unique, last)));
 		LIST_InsertHead(unexplored, POLY_REF(states));
@@ -545,8 +539,7 @@ unsigned long SimplifyStates(DFA_Node *start)
 		{
 			DFA_Node *parent = POLYDFA(AVL_Key(&outer));
 			AVL_Tree *rebins = parent->children;
-			parent->children = malloc(sizeof(AVL_Tree));
-			AVL_Initialize(parent->children, NULL, NULL, DFA_Comparator);
+			parent->children = AVL_Initialize(malloc(sizeof(AVL_Tree)), NULL, NULL, DFA_Comparator);
 			unsigned long osize = AVL_Size(rebins);
 			AVL_Iterator inner;
 			AVL_InitializeIterator(rebins, &inner);
@@ -561,7 +554,7 @@ unsigned long SimplifyStates(DFA_Node *start)
 				}
 				else
 				{
-					AVL_Insert(&bins, POLY_REF(child));
+					AVL_Set(&bins, POLY_REF(child), POLY_REF(child));
 					AVL_Initialize(child->children = malloc(sizeof(AVL_Tree)), NULL, NULL, DFA_Comparator);
 					child->surrogate = child;
 				}

@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
 	FILE *fp = fopen("test_regex.txt", "r");
 	REGEX_Expressions expr;
-	expr.expressions_count = 1;
+	expr.expressions_count = 3;
 	expr.expressions = malloc(sizeof(REGEX_Expression)*expr.expressions_count);
 	char buf[512];
 	for(unsigned long n = 0; n < expr.expressions_count; n++)
